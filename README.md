@@ -1,4 +1,6 @@
 # Calculator
 
-<h1>A simple calculor made with python via tkinter module</h1>
+<h3>A simple GUI calculor made with python via tkinter module</h3>
+
+[Picture of the GUI]()
 
