@@ -1,6 +1,6 @@
 import tkinter as tk
 from tkinter import ttk, messagebox as msg
-
+from titlebar import TitleBar, config_map_style, titlebar_theme_settings
 
 style_settings = {
     "background": "black",
@@ -23,7 +23,8 @@ theme_settings = {
             "foreground": style_settings["button_fg"],
             "font": style_settings["font"],
             "anchor": "center",
-            "focuscolor": "clear"
+            "focuscolor": "clear",
+            "borderwidth": 0,
         },
         "map": {
             "background": [
@@ -34,6 +35,11 @@ theme_settings = {
                 ("pressed", style_settings["button_press_fg"]),
                 ("active", style_settings["button_active_fg"])
             ]
+        }
+    },
+    "BiggerFont.TButton": {
+        "configure": {
+            "font": (None, style_settings["font"][1] + 5)
         }
     },
     "TEntry": {
@@ -51,7 +57,7 @@ theme_settings = {
 # layout
 # =============
 # (   )   %  /
-# 7   8   9  x
+# 7   8   9  ×
 # 4   5   6  -
 # 1   2   3  +
 # +/- 0   .  =
@@ -60,22 +66,24 @@ class Calculator(tk.Tk):
     def __init__(self):
         super().__init__()
 
-        self.title("Calculator")
-        self.geometry("400x400")
+        # self.title("Calculator")
+        self.geometry("400x400+200+200")
         self.configure(bg=style_settings["button_bg"])
         self.attributes("-topmost", 1)
         self.minsize(200, 200)
 
+        self.overrideredirect(True)
         self.make_gui()
 
         # varibles
-        self.trantable = str.maketrans({"^": "**", "x": "*"})
-        self.valid_inputs = set("1234567890-+/xX*^.%()")
+        self.trantable = str.maketrans({"^": "**", "×": "*"})
+        self.valid_inputs = set("1234567890-+/×xX*^.%()")
         self.entry = self.nametowidget("entry")
 
         self.style = ttk.Style(self)
         self.style.theme_create("dark.vista", settings=theme_settings)
         self.style.theme_use("dark.vista")
+        config_map_style(settings=titlebar_theme_settings)
 
         # binding shortcuts
         self.bind("<BackSpace>", self.backspace)
@@ -90,6 +98,9 @@ class Calculator(tk.Tk):
         # self.button_opts = {}
         entry_validate_cmd = self.register(self.validate)
         self.layout = [
+            [
+                [TitleBar(self, title="Calculator"), {"columnspan": 4}]
+            ],
             [
                 [
                     ttk.Entry(
@@ -118,25 +129,25 @@ class Calculator(tk.Tk):
                 [ttk.Button(self, text="7")],
                 [ttk.Button(self, text="8")],
                 [ttk.Button(self, text="9")],
-                [ttk.Button(self, text="x")]
+                [ttk.Button(self, text="×", style="BiggerFont.TButton")]
             ],
             [
                 [ttk.Button(self, text="4")],
                 [ttk.Button(self, text="5")],
                 [ttk.Button(self, text="6")],
-                [ttk.Button(self, text="-")]
+                [ttk.Button(self, text="-", style="BiggerFont.TButton")]
             ],
             [
                 [ttk.Button(self, text="1")],
                 [ttk.Button(self, text="2")],
                 [ttk.Button(self, text="3")],
-                [ttk.Button(self, text="+")]
+                [ttk.Button(self, text="+", style="BiggerFont.TButton")]
             ],
             [
                 [ttk.Button(self, text="+/-", command=lambda: self.calc(neget=True))],
                 [ttk.Button(self, text="0")],
                 [ttk.Button(self, text="·", command=lambda: self.add("."))],
-                [ttk.Button(self, text="=", command=self.calc)]
+                [ttk.Button(self, text="=", command=self.calc, style="BiggerFont.TButton")]
             ]
         ]
 
@@ -155,7 +166,7 @@ class Calculator(tk.Tk):
 
         for i in range(self.grid_size()[0]):
             self.columnconfigure(i, weight=1)
-        for j in range(self.grid_size()[1]):
+        for j in range(1, self.grid_size()[1]):
             self.rowconfigure(j, weight=1)
 
     def add(self, string):
