@@ -1,7 +1,8 @@
 from tkinter import ttk
 import tkinter as tk
 from ctypes import windll
-
+# stolen some codes from https://github.com/Terranova-Python/Tkinter-Menu-Bar/blob/main/main.py
+# i thought i just need some buttons and label that all but noooo
 
 titlebar_theme_settings = {
     "Title.TButton": {
