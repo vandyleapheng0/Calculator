@@ -1,323 +1,334 @@
-from tkinter import ttk
 import tkinter as tk
 from ctypes import windll
-# stolen some codes from https://github.com/Terranova-Python/Tkinter-Menu-Bar/blob/main/main.py
-# i thought i just need some buttons and label that all but noooo
 
-titlebar_theme_settings = {
-    "Title.TButton": {
-        "configure": {
-            "background": "#111",
-            "foreground": "white",
-            "focuscolor": "clear",
-            "anchor": "center",
-            "font": (None, 15),
-            "borderwidth": 0
-        },
-        "map": {"background": [("active", "#555555"), ("pressed", "#666666")]}
-    },
-    "Min.Title.TButton": {
-        "configure": {"font": (None, 10)}
-    },
-    "Max.Title.TButton": {
-        "configure": {"font": (None, 10)}
-    },
-    "Close.Title.TButton": {
-        "map": {"background": [("active", "#da2e25")]}
-    },
-    "Title.TLabel": {
-        "configure": {
-            "background": "#111",
-            "foreground": "white",
-            "font": (None, 10)
+
+class LabelButton(tk.Label):
+    def __init__(self, master, **kwargs):
+        super().__init__(master, **self.valid_kwargs(kwargs))
+        self.rebind()
+
+    def rebind(self):
+        # button hover
+        self.bind(
+            "<Enter>",
+            lambda event: self.config(
+                bg=self.settings["hover_bg"],
+                fg=self.settings["hover_fg"]
+            ),
+        )
+
+        # button hover reset
+        self.bind(
+            "<Leave>", lambda event: self.config(
+                bg=self.settings["bg"],
+                fg=self.settings["fg"]
+            )
+        )
+        # button press
+        self.bind("<Button-1>", self.settings["command"])
+        self.bind(
+            "<Button-1>",
+            lambda event: self.config(
+                bg=self.settings["press_bg"],
+                fg=self.settings["press_fg"]
+            ),
+            add=True,
+        )
+
+    def valid_kwargs(self, kwargs):
+        self.settings = {
+            "bg": "#333",
+            "fg": "#fff",
+            "command": None,
+            "hover_bg": "#555",
+            "hover_fg": "#fff",
+            "press_bg": "#777",
+            "press_fg": "#fff",
         }
-    }
-}
+        self.settings.update(kwargs)
+        kwargs["bg"] = kwargs.get("bg", self.settings["bg"])
+        kwargs["fg"] = kwargs.get("fg", self.settings["fg"])
+        for setting in ("hover_bg", "hover_fg", "press_bg", "press_fg", "command"):
+            if setting in kwargs:
+                del kwargs[setting]
+        return kwargs
 
 
-class SqrtButton(tk.Frame):
-    def __init__(self, master, **kargs):
-        super().__init__(master, width=kargs["side"], height=kargs["side"])
-        del kargs["side"]
-        self.pack_propagate(False)
-        self.button = ttk.Button(self, **kargs)
-        self.button.pack(fill="both", expand=True)
+class TitleTk(tk.Tk):
+    """"Main window with darkmode titlebar widget pack on the top"""
 
+    def __init__(self):
+        super().__init__()
+        self.overrideredirect(True)
 
-def config_map_style(settings):
-    style = ttk.Style()
-    for widget_cls, changes in settings.items():
-        for func, options in changes.items():
-            if func == "configure":
-                style.configure(widget_cls, **options)
-            elif func == "map":
-                style.map(widget_cls, **options)
-            else:
-                raise ValueError("Can only change the 'map' and 'configure'")
-
-
-def change_bg(background):
-    style = ttk.Style()
-    style.configure("Title.TButton", background=background)
-    style.configure("Title.TLabel", background=background)
-
-
-class TitleBar(tk.Frame):
-    """Treat the TitleBar as a normal widget\n
-    You can pack it to the top or using grid instead\n
-    The TitleBar will change the theme of the app to 'alt'\n
-    If you you want to use other theme or make your own don't forget to call:\n
-    1.0 (option:1) 'titlebar.config_map_style(settings=titlebar.titlebar_theme_settings)'\n
-    1.1 (option:2) add "Title.TButton, Min.Title.TButton, Max.Title.TButton, Close.Title.TButton, Title.TLabel" to your style\n
-    2. 'change_bg(background="your titlebar background")' don't need if bg is default"""
-
-    def __init__(self, master, title="tk", **kargs):
-        self.fix_kargs(kargs)
-        super().__init__(master, **kargs, bg=self.style_settings["bg"])
-
-        self.style = ttk.Style(self)
-        self.change_theme()
+        self.settings = {"bg": "#111", "fg": "#fff"}
         self.maximized = False
-        self.minimized = False
+        # self.minimized = False
+        self.resizable_values = (True, True)
+        self.minsize_values = (120, 30)
+        self.maxsize_values = (self.winfo_screenwidth(), self.winfo_screenheight())
+        self.restore_down_image = tk.PhotoImage(file="images/restore_down_white15.png")
 
-        self.title = ttk.Label(
-            self, text=title,
-            compound="left",
-            style="Title.TLabel"
+        self.titlebar = tk.Frame(self, bg=self.settings["bg"], height=30)
+        self.titlebar.pack(fill="x")
+        self.titlebar.pack_propagate(False)
+
+        self.title_ = tk.Label(
+            self.titlebar,
+            text="Tk",
+            **self.settings,
+            font=(None, 10)
         )
-        self.maximize = SqrtButton(
-            self, text="☐",
-            compound="center",
-            side=30, style="Max.Title.TButton",
-            command=self.maximize_window
+        self.close = LabelButton(
+            self.titlebar,
+            command=lambda event: self.quit(),
+            text="×",
+            hover_bg="#da2e25",
+            font=(None, 20),
+            **self.settings,
         )
-        self.minimize = SqrtButton(
-            self, text="—",
-            side=30, style="Min.Title.TButton",
-            command=self.minimize_window
+        self.maximize = LabelButton(
+            self.titlebar,
+            text="☐",
+            font=(None, 11),
+            **self.settings,
+            command=self.maximize_window,
         )
-        self.close = SqrtButton(
-            self, text="×",
-            side=30, style="Close.Title.TButton",
-            command=self.master.quit
+        self.minimize = LabelButton(
+            self.titlebar,
+            text="—",
+            font=(None, 12),
+            **self.settings,
+            command=self.iconify,
         )
 
-        self.title.pack(side="left", padx=(5, 0))
-        self.close.pack(side="right")
-        self.maximize.pack(side="right")
-        self.minimize.pack(side="right")
+        self.title_.pack(side="left", padx=(5, 0))
+        self.close.pack(side="right", fill="y", ipadx=4)
+        self.maximize.pack(side="right", fill="y", ipadx=4)
+        self.minimize.pack(side="right", fill="y", ipadx=4)
 
-        # NOTE make sure to add param("<Motion>", func, add="+") if you want to bind the already binded action
+        self.title_bind("<B1-Motion>", self.move_window)
+        self.title_bind("<Double-Button-1>", self.maximize_window)
+        self.bind("<Motion>", self.get_resize_info)
+        self.bind("<Button-1>", self.record_movement)
+        self.bind("<B1-Motion>", self.resize_window)
+        self.bind("<FocusIn>", self.deiconify, add="+")
+        # self.after(10, lambda: self.set_appwindow())
+        self.add_to_taskbar()
+
+    def add_to_taskbar(self):
         self.after(10, lambda: self.set_appwindow())
-        self.title_bar_bind("<B1-Motion>", self.move_window)
-        self.title_bar_bind("<B1-ButtonRelease>", self.release_window)
-        self.title_bar_bind("<Double-Button-1>", self.maximize_window)
-        self.master.bind("<FocusIn>", self.deminimize_window)
-        self.master.bind("<Motion>", self.get_resize_info)
-        self.master.bind("<B1-Motion>", self.resize_window)
-        self.master.bind("<B1-ButtonRelease>", self.release_window)
 
-    def title_bar_bind(self, key, func):
-        self.bind(key, func)
-        self.title.bind(key, func)
-
-    def release_window(self, event=None):
-        # keeping the last_movement will mess up the resize and move methods
-        # it needs to be record again
-        try:
-            del self.last_movement
-        except AttributeError:
-            pass
-
-    def fix_kargs(self, kargs):
-        self.style_settings = {"bg": "#111", "fg": "white"}
-        items_lst = [("bg", "background"), ("fg", "foreground")]
-
-        for items in items_lst:
-            for item in items:
-                if item in kargs:
-                    self.style_settings[items[0]] = kargs[item]
-                    break
-
-        if self.style_settings["fg"] == "white":
-            self.restore_down_png = tk.PhotoImage(file="images/restore_down_white15.png")
-        elif self.style_settings["fg"] == "black":
-            self.restore_down_png = tk.PhotoImage(file="images/restore_down_dark15.png")
+    def config_titlebar(self, light_theme=False, bg=None, fg=None):
+        """toggle light_theme or changing the fg: foreground or bg: background"""
+        if not light_theme:
+            bg = bg or self.settings["bg"]
+            fg = fg or self.settings["fg"]
         else:
-            raise ValueError('foreground can only be "white", "black"')
+            bg = bg or "white",
+            fg = fg or "black"
+            settings = {
+                "hover_bg": "#ccc",
+                "hover_fg": fg,
+                "press_bg": "#aaa",
+                "press_fg": fg,
+            }
+        if fg not in ("white", "black"):
+            raise ValueError("foreground can only be white or black")
 
-        try:
-            del kargs["fg"]
-        except KeyError:
-            pass
+        self.titlebar.config(bg=bg)
+        for widget in self.titlebar.pack_slaves():
+            if hasattr(widget, "settings"):
+                widget.settings.update(bg=bg, fg=fg)
+                if light_theme:
+                    widget.settings.update(settings)
+                    widget.rebind()
+            widget.config(bg=bg, fg=fg)
 
-    def get_resize_info(self, event=None):
-        """Get the resize info and change the cursor style to indecate user that widget is resizable"""
-        self.resize_left = event.x_root - self.master.winfo_x() < 5
-        self.resize_right = event.x_root > self.master.winfo_x() + self.master.winfo_width() - 5
+        if light_theme:
+            self.close.settings["hover_bg"] = "#da2e25"
+            self.close.rebind()
 
-        self.resize_top = event.y_root - self.master.winfo_y() < 5
-        self.resize_bottom = event.y_root > self.master.winfo_y() + self.master.winfo_height() - 5
+        if fg == "black":
+            self.restore_down_image = tk.PhotoImage(file="images/restore_down_dark15.png")
+        elif fg:
+            self.resize_down_image = tk.PhotoImage(file="images/restore_down_white15.png")
 
-        if self.resize_left or self.resize_right:
-            self.master.config(cursor='sb_h_double_arrow')
-        elif self.resize_top or self.resize_bottom:
-            self.master.config(cursor='sb_v_double_arrow')
-        else:
-            self.master.config(cursor="arrow")
+    def maximize_window(self, event=None):
+        if sum(self.resizable_values) == 2:
+            if not self.maximized:
+                self.maximized = True
+                self.maximize.config(text="", image=self.restore_down_image)
+                self.old_geometry = self.geometry()
+                self.geometry("%ix%i+0+0" % (self.winfo_screenwidth(), self.winfo_screenheight()))
+            else:
+                self.maximized = False
+                self.maximize.config(text="☐", image="")
+                self.geometry(self.old_geometry)
 
-    def resize_window(self, event=None):
-        # We need last_movement to calculate width and height to resize
-        # resizing: "bottom" and "right" are the same. Calculate the different and add to geometry
-        # resizing: "top" and "left" the same above, but we need to move(NOT RESIZE) widget along with cursor
+    def iconify(self, event=None):
+        self.attributes("-alpha", 0)
 
-        if hasattr(self, "last_movement"):
-            if self.resize_bottom:
-                self.master.geometry("{}x{}".format(
-                    self.master.winfo_width(),
-                    self.master.winfo_height() + event.y_root - self.last_movement[1]
-                ))
-            elif self.resize_top:
-                self.master.geometry("{}x{}+{}+{}".format(
-                    self.master.winfo_width(),
-                    self.master.winfo_height() + self.last_movement[1] - event.y_root,
-                    self.master.winfo_x(),
-                    self.master.winfo_y() + event.y_root - self.last_movement[1]
-                ))
-            elif self.resize_left:
-                self.master.geometry("{}x{}+{}+{}".format(
-                    self.master.winfo_width() + self.last_movement[0] - event.x_root,
-                    self.master.winfo_height(),
-                    self.master.winfo_x() + event.x_root - self.last_movement[0],
-                    self.master.winfo_y()
-                ))
-            elif self.resize_right:
-                self.master.geometry("{}x{}".format(
-                    self.master.winfo_width() + event.x_root - self.last_movement[0],
-                    self.master.winfo_height()
-                ))
+    def deiconify(self, event=None):
+        if event.widget == self:
+            self.focus()
+            self.attributes("-alpha", 1)
+
+    def record_movement(self, event=None):
         self.last_movement = (event.x_root, event.y_root)
+
+    def title_bind(self, key, command, add=False):
+        self.title_.bind(key, command, add=add)
+        self.titlebar.bind(key, command, add=add)
+
+    def title(self, text):
+        super().title(text)
+        self.title_.config(text=text)
 
     def move_window(self, event=None):
         # record the last_movement
         # (next movement) calculate the different and move the main-window
-        if not (self.maximized or self.resize_top):
-            if hasattr(self, "last_movement"):
-                self.master.geometry("+{}+{}".format(
-                    self.master.winfo_x() + event.x_root - self.last_movement[0],
-                    self.master.winfo_y() + event.y_root - self.last_movement[1]
-                ))
+        if not (
+            self.maximized
+            or self.resize_top
+            or self.resize_bottom
+            or self.resize_right
+            or self.resize_left
+        ):
+            self.geometry(
+                "+{}+{}".format(
+                    self.winfo_x() + event.x_root - self.last_movement[0],
+                    self.winfo_y() + event.y_root - self.last_movement[1],
+                )
+            )
             self.last_movement = (event.x_root, event.y_root)
 
     def set_appwindow(self):
-        """add icon on the taskbar"""
-        # Some WindowsOS styles, required for task bar integration
         GWL_EXSTYLE = -20
         WS_EX_APPWINDOW = 0x00040000
         WS_EX_TOOLWINDOW = 0x00000080
-        # Magic
-        hwnd = windll.user32.GetParent(self.master.winfo_id())
-        stylew = windll.user32.GetWindowLongW(hwnd, GWL_EXSTYLE)
-        stylew = stylew & ~WS_EX_TOOLWINDOW
-        stylew = stylew | WS_EX_APPWINDOW
-        res = windll.user32.SetWindowLongW(hwnd, GWL_EXSTYLE, stylew)
 
-        self.master.wm_withdraw()
-        self.master.after(10, lambda: self.master.wm_deiconify())
+        hwnd = windll.user32.GetParent(self.winfo_id())
+        style = windll.user32.GetWindowLongW(hwnd, GWL_EXSTYLE)
+        style = style & ~WS_EX_TOOLWINDOW
+        style = style | WS_EX_APPWINDOW
+        res = windll.user32.SetWindowLongW(hwnd, GWL_EXSTYLE, style)
 
-    def config_button_map(self, button_map=None, close_map=None):
-        if button_map is not None:
-            self.style.map("TButton", **button_map)
-        if close_map is not None:
-            self.style.map("Close.TButton", **close_map)
+        self.wm_withdraw()
+        self.after(10, lambda: self.wm_deiconify())
 
-    def change_theme(self):
-        theme_settings = {
-            "Title.TButton": {
-                "configure": {
-                    "background": self.style_settings["bg"],
-                    "foreground": self.style_settings["fg"],
-                    "focuscolor": "clear",
-                    "anchor": "center",
-                    "font": (None, 15),
-                    "borderwidth": 0
-                },
-                "map": {"background": [("active", "#555555"), ("pressed", "#666666")]}
-            },
-            "Min.Title.TButton": {
-                "configure": {"font": (None, 10)}
-            },
-            "Max.Title.TButton": {
-                "configure": {"font": (None, 10)}
-            },
-            "Close.Title.TButton": {
-                "map": {"background": [("active", "#da2e25")]}
-            },
-            "Title.TLabel": {
-                "configure": {
-                    "background": self.style_settings["bg"],
-                    "foreground": self.style_settings["fg"],
-                    "font": (None, 10)
-                }
-            }
-        }
+    def resizable(self, x, y):
+        self.resizable_values = (x, y)
 
-        self.style.theme_use("alt")
-        config_map_style(settings=theme_settings)
+    def maxsize(self, width, height):
+        self.maxsize_values = (width, height)
+        self.update()
+        if self.winfo_width() > width:
+            self.geometry(f"{width}x{self.winfo_height()}")
 
-    def maximize_window(self, event=None):
-        if self.maximized:
-            self.master.geometry(self.old_window_geomerty)
-            self.maximize.button.config(text="☐", image='')
-            self.maximized = False
+        self.update()
+        if self.winfo_height() > height:
+            self.geometry(f"{self.winfo_width()}x{height}")
+
+    def minsize(self, width, height):
+        self.minsize_values = (width, height)
+        self.update()
+        if self.winfo_width() < width:
+            self.geometry(f"{width}x{self.winfo_height()}")
+
+        self.update()
+        if self.winfo_height() < height:
+            self.geometry(f"{self.winfo_width()}x{height}")
+
+    def get_resize_info(self, event=None):
+        """Get the resize info and change the cursor style to indecate user that widget is resizable"""
+
+        self.resize_left = event.x_root - self.winfo_x() < 5
+        self.resize_right = event.x_root > self.winfo_x() + self.winfo_width() - 5
+
+        self.resize_top = event.y_root - self.winfo_y() < 5
+        self.resize_bottom = event.y_root > self.winfo_y() + self.winfo_height() - 5
+
+        if not self.resizable_values[1]:
+            self.resize_left = self.resize_right = False
+
+        if not self.resizable_values[0]:
+            self.resize_top = self.resize_bottom = False
+
+        if self.resize_left or self.resize_right:
+            self.config(cursor="sb_h_double_arrow")
+        elif self.resize_top or self.resize_bottom:
+            self.config(cursor="sb_v_double_arrow")
         else:
-            self.old_window_geomerty = self.master.geometry()
-            self.maximized = True
-            self.master.geometry("{}x{}+0+0".format(
-                self.master.winfo_screenwidth(),
-                self.master.winfo_screenheight()
-            ))
-            self.maximize.button.config(text="", image=self.restore_down_png)  # 🗇
+            self.config(cursor="arrow")
 
-    def minimize_window(self, event=None):
-        if not self.minimized:
-            self.master.attributes("-alpha", 0)
-            self.minimized = True
+    def resize_window(self, event=None):
+        # We need last_movement to calculate width and height to resize
+        # resizing: "bottom" and "right" are the same. Calculate the different and add to geometry
+        # resizing: "top" and "left" the same above, but we need to MOVE and RESIZE widget along with cursor
+        resize_x = self.maxsize_values[0] >= self.winfo_width() >= self.minsize_values[0]
+        resize_y = self.maxsize_values[1] >= self.winfo_height() >= self.minsize_values[1]
 
-    def deminimize_window(self, event=None):
-        self.master.focus()
-        if self.minimized:
-            self.master.attributes("-alpha", 1)
-            self.minimized = False
+        try:
+            if self.resize_bottom and resize_y:
+                self.geometry(
+                    "{}x{}".format(
+                        self.winfo_width(),
+                        self.winfo_height() + event.y_root - self.last_movement[1],
+                    )
+                )
+            elif self.resize_top and resize_y:
+                self.geometry(
+                    "{}x{}+{}+{}".format(
+                        self.winfo_width(),
+                        self.winfo_height() + self.last_movement[1] - event.y_root,
+                        self.winfo_x(),
+                        self.winfo_y() + event.y_root - self.last_movement[1],
+                    )
+                )
+            elif self.resize_left and resize_x:
+                self.geometry(
+                    "{}x{}+{}+{}".format(
+                        self.winfo_width() + self.last_movement[0] - event.x_root,
+                        self.winfo_height(),
+                        self.winfo_x() + event.x_root - self.last_movement[0],
+                        self.winfo_y(),
+                    )
+                )
+            elif self.resize_right and resize_x:
+                self.geometry(
+                    "{}x{}".format(
+                        self.winfo_width() + event.x_root - self.last_movement[0],
+                        self.winfo_height(),
+                    )
+                )
+        except tk.TclError:
+            print("TclError")
 
-
-class CustomTitleBarTk(tk.Tk):
-    def __init__(self, **kargs):
-        super().__init__()
-        self.overrideredirect(True)
-        self.title_bar = TitleBar(self, **kargs)
-        self.title_bar.pack(fill="x")
-
-        self.window = tk.Frame(self)
-        self.window.pack(fill="both", expand=True)
+        self.last_movement = (event.x_root, event.y_root)
+        if not resize_x or not resize_y:
+            self.maxsize(*self.maxsize_values)
+            self.minsize(*self.minsize_values)
 
 
 if __name__ == "__main__":
-    # root = tk.Tk()
+    # root = TitleTk()
     # root.geometry("500x400+800+100")
-    # root.overrideredirect(True)
     # root.attributes("-topmost", 1)
     # root.config(bg="#333")
-
-    # title_bar = TitleBar(root, fg="white", title="Finally")
-    # title_bar.pack(fill="x")
-
     # label = tk.Label(root, text="hello world".upper())
     # label.pack(ipadx=5, ipady=5)
     # root.mainloop()
 
-    root = CustomTitleBarTk()
+    root = TitleTk()
+    root.title("Tkinter")
     root.geometry("400x400")
-    label = tk.Label(root.window, text="hello world".upper())
+    # root.resizable(0, 1)
+    # root.maxsize(400, 300)
+    # root.minsize(300, 200)
+    # root.config_titlebar(light_theme=True, bg="grey")
+    window = tk.Frame(root, bg="#333")
+    window.pack(fill="both", expand=True)
+    label = tk.Label(window, text="hello world".upper())
     label.pack(ipadx=5, ipady=5)
     root.mainloop()

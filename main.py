@@ -1,18 +1,18 @@
 import tkinter as tk
 from tkinter import ttk, messagebox as msg
-from titlebar import TitleBar, config_map_style, titlebar_theme_settings
+from titlebar import TitleTk
 
 style_settings = {
     "background": "black",
     "foreground": "grey",
-    "button_bg": "#222222",
+    "button_bg": "#222",
     "button_fg": "white",
-    "button_active_bg": "#333333",
+    "button_active_bg": "#333",
     "button_active_fg": "white",
-    "button_press_bg": "#555555",
+    "button_press_bg": "#555",
     "button_press_fg": "white",
     "font": ("JetBrains Mono", 17),
-    "select_bg": "#555555"
+    "select_bg": "#555"
 }
 
 
@@ -39,7 +39,12 @@ theme_settings = {
     },
     "BiggerFont.TButton": {
         "configure": {
-            "font": (None, style_settings["font"][1] + 5)
+            "font": (None, style_settings["font"][1] + 7)
+        }
+    },
+    "Minus.BiggerFont.TButton": {
+        "configure": {
+            "font": (None, style_settings["font"][1] + 12)
         }
     },
     "TEntry": {
@@ -62,17 +67,10 @@ theme_settings = {
 # 1   2   3  +
 # +/- 0   .  =
 
-class Calculator(tk.Tk):
-    def __init__(self):
-        super().__init__()
+class Calculator(tk.Frame):
+    def __init__(self, master, **kwargs):
+        super().__init__(master, **kwargs, bg=style_settings["button_bg"])
 
-        # self.title("Calculator")
-        self.geometry("400x400+200+200")
-        self.configure(bg=style_settings["button_bg"])
-        self.attributes("-topmost", 1)
-        self.minsize(200, 200)
-
-        self.overrideredirect(True)
         self.make_gui()
 
         # varibles
@@ -80,14 +78,14 @@ class Calculator(tk.Tk):
         self.valid_inputs = set("1234567890-+/×xX*^.%()")
         self.entry = self.nametowidget("entry")
 
+        # configure and change the style
         self.style = ttk.Style(self)
         self.style.theme_create("dark.vista", settings=theme_settings)
         self.style.theme_use("dark.vista")
-        config_map_style(settings=titlebar_theme_settings)
 
         # binding shortcuts
-        self.bind("<BackSpace>", self.backspace)
-        self.bind("<Return>", lambda e: self.calc())
+        self.master.bind("<BackSpace>", self.backspace)
+        self.master.bind("<Return>", lambda e: self.calc())
         self.entry.bind("<BackSpace>", self.backspace)
         self.entry.bind("<Return>", lambda e: self.calc())
         self.entry.bind("<FocusOut>", lambda e: self.entry.icursor("end"))
@@ -99,9 +97,6 @@ class Calculator(tk.Tk):
         entry_validate_cmd = self.register(self.validate)
         self.layout = [
             [
-                [TitleBar(self, title="Calculator"), {"columnspan": 4}]
-            ],
-            [
                 [
                     ttk.Entry(
                         self, name="entry",
@@ -110,7 +105,7 @@ class Calculator(tk.Tk):
                         validate="key",
                         validatecommand=(entry_validate_cmd, "%S")
                     ),
-                    {"columnspan": 4, "padx": 4}
+                    {"columnspan": 4, "padx": 7, "ipady": 10}
                 ]
             ],
             [
@@ -135,7 +130,7 @@ class Calculator(tk.Tk):
                 [ttk.Button(self, text="4")],
                 [ttk.Button(self, text="5")],
                 [ttk.Button(self, text="6")],
-                [ttk.Button(self, text="-", style="BiggerFont.TButton")]
+                [ttk.Button(self, text="-", style="Minus.BiggerFont.TButton")]
             ],
             [
                 [ttk.Button(self, text="1")],
@@ -190,4 +185,10 @@ class Calculator(tk.Tk):
         return all(c in self.valid_inputs for c in string)
 
 
-Calculator().mainloop()
+if __name__ == "__main__":
+    root = TitleTk()
+    root.title("Calculator")
+    root.geometry("400x400+100+200")
+    window = Calculator(root)
+    window.pack(fill="both", expand=True)
+    root.mainloop()
